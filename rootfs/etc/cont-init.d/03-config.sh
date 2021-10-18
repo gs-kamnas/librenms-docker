@@ -244,3 +244,9 @@ for template in ${templates}; do
   echo "  Adding ${template} alert template"
   ln -sf /data/alert-templates/${template} ${LIBRENMS_PATH}/resources/views/alerts/templates/${template}
 done
+
+# Run custom configuration hooks as user librenms,
+# if the file exists.
+if [ -x "/data/cont-init-hooks/post-config" ]; then
+  yasu librenms:librenms /data/cont-init-hooks/post-config
+fi
