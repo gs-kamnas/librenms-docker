@@ -1,7 +1,7 @@
 #!/usr/bin/with-contenv bash
 
 CRONTAB_PATH="/var/spool/cron/crontabs"
-CRON_HOOK_PATH="/data/config/cron-pre-hook"
+CRON_HOOK_PATH="/data/cron-pre-hook"
 
 LIBRENMS_WEATHERMAP=${LIBRENMS_WEATHERMAP:-false}
 LIBRENMS_WEATHERMAP_SCHEDULE=${LIBRENMS_WEATHERMAP_SCHEDULE:-*/5 * * * *}
