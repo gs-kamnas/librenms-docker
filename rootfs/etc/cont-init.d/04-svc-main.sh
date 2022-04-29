@@ -31,6 +31,7 @@ DB_TIMEOUT=${DB_TIMEOUT:-60}
 SIDECAR_DISPATCHER=${SIDECAR_DISPATCHER:-0}
 SIDECAR_SYSLOGNG=${SIDECAR_SYSLOGNG:-0}
 SIDECAR_SNMPTRAPD=${SIDECAR_SNMPTRAPD:-0}
+DISABLE_DB_MIGRATE=${DISABLE_DB_MIGRATE:-0}
 
 if [ "$SIDECAR_DISPATCHER" = "1" ] || [ "$SIDECAR_SYSLOGNG" = "1" ] || [ "$SIDECAR_SNMPTRAPD" = "1" ]; then
   exit 0
@@ -69,9 +70,13 @@ done
 echo "Database ready!"
 counttables=$(echo 'SHOW TABLES' | ${dbcmd} "$DB_NAME" | wc -l)
 
-echo "Updating database schema..."
-lnms migrate --force --no-ansi --no-interaction
-artisan db:seed --force --no-ansi --no-interaction
+if [ "${DISABLE_DB_MIGRATE}" -ne "1" ] ; then
+  echo "Updating database schema..."
+  lnms migrate --force --no-ansi --no-interaction
+  artisan db:seed --force --no-ansi --no-interaction
+else
+  echo "Skipping database migration and seeding as DISABLE_DB_MIGRATE is set to 1."
+fi
 
 echo "Clear cache"
 artisan cache:clear --no-interaction
