@@ -197,7 +197,6 @@ EOL
 # Config : Dispatcher
 cat >${LIBRENMS_PATH}/database/seeders/config/dispatcher.yaml <<EOL
 service_update_enabled: false
-service_watchdog_enabled: false
 EOL
 
 # Check plugins
