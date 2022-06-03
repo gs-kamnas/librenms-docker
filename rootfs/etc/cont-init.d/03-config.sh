@@ -184,7 +184,6 @@ fi
 cat > ${LIBRENMS_PATH}/config.d/dispatcher.php <<EOL
 <?php
 \$config['service_update_enabled'] = false;
-\$config['service_watchdog_enabled'] = false;
 EOL
 
 # Check plugins
