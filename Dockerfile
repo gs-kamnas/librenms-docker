@@ -1,4 +1,4 @@
-ARG LIBRENMS_VERSION="22.6.0"
+ARG LIBRENMS_VERSION="22.7.0-p2"
 
 FROM crazymax/yasu:latest AS yasu
 FROM crazymax/alpine-s6:3.15-2.2.0.3
@@ -109,7 +109,7 @@ RUN apk --update --no-cache add -t build-dependencies \
     linux-headers \
     musl-dev \
     python3-dev \
-  && git clone --branch ${LIBRENMS_VERSION} https://github.com/librenms/librenms.git . \
+  && git clone --branch ${LIBRENMS_VERSION} https://github.com/gs-kamnas/librenms.git . \
   && pip3 install --ignore-installed -r requirements.txt --upgrade \
   && COMPOSER_CACHE_DIR="/tmp" composer install --no-dev --no-interaction --no-ansi \
   && mkdir config.d \
