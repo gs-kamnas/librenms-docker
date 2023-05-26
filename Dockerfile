@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-ARG LIBRENMS_VERSION="23.2.0"
+ARG LIBRENMS_VERSION="23.5.0-p1"
 ARG WEATHERMAP_PLUGIN_COMMIT="4ce6ad1aa1b6fadda25b42042a9603212a27c386"
 ARG ALPINE_VERSION="3.17"
 
@@ -125,7 +125,7 @@ RUN apk --update --no-cache add -t build-dependencies \
   && echo "foreach (glob(\"/data/config/*.php\") as \$filename) include \$filename;" >> config.php \
   && echo "foreach (glob(\"${LIBRENMS_PATH}/config.d/*.php\") as \$filename) include \$filename;" >> config.php \
   && ( \
-    git clone --depth=1 https://github.com/librenms-plugins/Weathermap.git ./html/plugins/Weathermap \
+    git clone https://github.com/librenms-plugins/Weathermap.git ./html/plugins/Weathermap \
     && cd ./html/plugins/Weathermap \
     && git reset --hard $WEATHERMAP_PLUGIN_COMMIT \
   ) \
