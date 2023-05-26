@@ -1,0 +1,2 @@
+ [ -e "" ] && source "" ; cd /opt/librenms && bash daily.sh
+ [ -e "" ] && source "" ; cd /opt/librenms && php artisan schedule:run
