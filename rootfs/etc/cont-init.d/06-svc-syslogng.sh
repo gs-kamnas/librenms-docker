@@ -1,6 +1,8 @@
-#!/usr/bin/with-contenv sh
-# shellcheck shell=sh
+#!/usr/bin/with-contenv bash
+# shellcheck shell=bash
 set -e
+
+. /usr/libexec/cont-init-common
 
 SIDECAR_SYSLOGNG=${SIDECAR_SYSLOGNG:-0}
 
@@ -14,14 +16,16 @@ echo ">> Sidecar syslog-ng container detected"
 echo ">>"
 
 mkdir -p /data/syslog-ng /run/syslog-ng
-chown librenms:librenms /data/syslog-ng
-chown -R librenms:librenms /run/syslog-ng
+if [ "$EUID" = 0 ]; then
+  chown librenms:librenms /data/syslog-ng
+  chown -R librenms:librenms /run/syslog-ng
+fi
 
 # Create service
-mkdir -p /etc/services.d/syslogng
-cat >/etc/services.d/syslogng/run <<EOL
+mkdir -p "${S6_SERVICE_DIR}/syslogng"
+cat >"${S6_SERVICE_DIR}/syslogng/run" <<EOL
 #!/usr/bin/execlineb -P
 with-contenv
 /usr/sbin/syslog-ng -F
 EOL
-chmod +x /etc/services.d/syslogng/run
+chmod +x "${S6_SERVICE_DIR}/syslogng/run"

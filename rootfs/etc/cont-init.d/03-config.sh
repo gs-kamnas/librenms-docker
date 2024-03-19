@@ -2,28 +2,7 @@
 # shellcheck shell=bash
 set -e
 
-# From https://github.com/docker-library/mariadb/blob/master/docker-entrypoint.sh#L21-L41
-# usage: file_env VAR [DEFAULT]
-#    ie: file_env 'XYZ_DB_PASSWORD' 'example'
-# (will allow for "$XYZ_DB_PASSWORD_FILE" to fill in the value of
-#  "$XYZ_DB_PASSWORD" from a file, especially for Docker's secrets feature)
-file_env() {
-  local var="$1"
-  local fileVar="${var}_FILE"
-  local def="${2:-}"
-  if [ "${!var:-}" ] && [ "${!fileVar:-}" ]; then
-    echo >&2 "error: both $var and $fileVar are set (but are exclusive)"
-    exit 1
-  fi
-  local val="$def"
-  if [ "${!var:-}" ]; then
-    val="${!var}"
-  elif [ "${!fileVar:-}" ]; then
-    val="$(<"${!fileVar}")"
-  fi
-  export "$var"="$val"
-  unset "$fileVar"
-}
+. /usr/libexec/cont-init-common
 
 TZ=${TZ:-UTC}
 
@@ -51,9 +30,11 @@ DB_TIMEOUT=${DB_TIMEOUT:-30}
 LIBRENMS_BASE_URL=${LIBRENMS_BASE_URL:-/}
 
 # Timezone
-echo "Setting timezone to ${TZ}..."
-ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime
-echo ${TZ} >/etc/timezone
+if [ "$EUID" = 0 ]; then
+  echo "Setting timezone to ${TZ}..."
+  ln -snf /usr/share/zoneinfo/${TZ} /etc/localtime
+  echo ${TZ} >/etc/timezone
+fi
 
 # PHP
 echo "Setting PHP-FPM configuration..."
@@ -104,8 +85,10 @@ if [ -d "${LIBRENMS_PATH}/html/plugins/Weathermap" ]; then
   if [ ! -L "${LIBRENMS_PATH}/html/plugins/Weathermap/configs" ]; then
     ln -sf /data/weathermap ${LIBRENMS_PATH}/html/plugins/Weathermap/configs
   fi
-  chown -h librenms:librenms ${LIBRENMS_PATH}/html/plugins/Weathermap/configs
-  chown -R librenms:librenms /data/weathermap ${LIBRENMS_PATH}/html/plugins/Weathermap/output
+  if [ "$EUID" = 0 ]; then
+    chown -h librenms:librenms ${LIBRENMS_PATH}/html/plugins/Weathermap/configs
+    chown -R librenms:librenms /data/weathermap ${LIBRENMS_PATH}/html/plugins/Weathermap/output
+  fi
 fi
 
 # cleanup bad symlink: https://github.com/librenms/docker/issues/294#issuecomment-1190389960
@@ -212,14 +195,18 @@ for plugin in ${plugins}; do
     rm -rf "${LIBRENMS_PATH}/html/plugins/${plugin}"
   fi
   ln -sf "/data/plugins/${plugin}" "${LIBRENMS_PATH}/html/plugins/${plugin}"
-  chown -h librenms:librenms "${LIBRENMS_PATH}/html/plugins/${plugin}"
+  if [ "$EUID" = 0 ]; then
+    chown -h librenms:librenms "${LIBRENMS_PATH}/html/plugins/${plugin}"
+  fi
 done
 
-# Fix perms
-echo "Fixing perms..."
-chown librenms:librenms /data/config /data/monitoring-plugins /data/plugins /data/rrd /data/weathermap /data/alert-templates
-chown -R librenms:librenms /data/logs ${LIBRENMS_PATH}/config.d ${LIBRENMS_PATH}/bootstrap ${LIBRENMS_PATH}/logs ${LIBRENMS_PATH}/storage
-chmod ug+rw /data/logs /data/rrd ${LIBRENMS_PATH}/bootstrap/cache ${LIBRENMS_PATH}/storage ${LIBRENMS_PATH}/storage/framework/*
+# Fix perms if we created things as root
+if [ "$EUID" = 0 ]; then
+  echo "Fixing perms..."
+  chown librenms:librenms /data/config /data/monitoring-plugins /data/plugins /data/rrd /data/weathermap /data/alert-templates
+  chown -R librenms:librenms /data/logs ${LIBRENMS_PATH}/config.d ${LIBRENMS_PATH}/bootstrap ${LIBRENMS_PATH}/logs ${LIBRENMS_PATH}/storage
+  chmod ug+rw /data/logs /data/rrd ${LIBRENMS_PATH}/bootstrap/cache ${LIBRENMS_PATH}/storage ${LIBRENMS_PATH}/storage/framework/*
+fi
 
 # Check additional Monitoring plugins
 echo "Checking additional Monitoring plugins..."

@@ -1,0 +1,42 @@
+#!/usr/bin/env sh
+# shellcheck shell=sh
+
+echo "This script will prepare this container to be run as non-root with a fixed UID of ${PUID}"
+
+echo "Pre-applying ownership and permissions changes..."
+set -x
+sh /etc/cont-init.d/01-fix-uidgid.sh
+sh /etc/cont-init.d/02-fix-perms.sh
+
+echo "Removing initscripts which require root privileges..."
+echo "This requires running with S6_READ_ONLY_ROOT=1 and S6_LOGGING=0"
+rm -rf /etc/services.d
+rm -f /etc/crontabs/root
+rm -f '/etc/cont-init.d/~-socklog'
+rm -f /etc/cont-init.d/00-fix-logs.sh
+rm  /etc/cont-init.d/01-fix-uidgid.sh
+
+# The following allow configuration to be performed as the librenms user
+# as opposed to the root user since our container will not be launched as root
+mkdir -p /etc/logrotate.d
+chown -R librenms:librenms "${LIBRENMS_PATH}" \
+                           /etc/crontabs \
+                           /etc/php82 \
+                           /etc/nginx \
+                           /etc/snmp \
+                           /etc/logrotate.d \
+                           ${S6_SERVICE_DIR} \
+                           /run \
+                           /var/spool
+
+echo "This will require running with sysctl net.ipv4.ping_group_range set to allow ICMP sockets for group ${PGID}!"
+chmod u-s,g-s \
+      /bin/ping \
+      /bin/ping6 \
+      /usr/lib/monitoring-plugins/check_icmp
+
+# Clear capabilities by affecting a change on the inode
+touch /usr/sbin/fping
+touch /usr/sbin/fping6
+touch /usr/lib/monitoring-plugins/check_icmp
+touch /usr/lib/monitoring-plugins/check_ping

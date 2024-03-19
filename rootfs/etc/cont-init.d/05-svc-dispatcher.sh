@@ -2,28 +2,7 @@
 # shellcheck shell=bash
 set -e
 
-# From https://github.com/docker-library/mariadb/blob/master/docker-entrypoint.sh#L21-L41
-# usage: file_env VAR [DEFAULT]
-#    ie: file_env 'XYZ_DB_PASSWORD' 'example'
-# (will allow for "$XYZ_DB_PASSWORD_FILE" to fill in the value of
-#  "$XYZ_DB_PASSWORD" from a file, especially for Docker's secrets feature)
-file_env() {
-  local var="$1"
-  local fileVar="${var}_FILE"
-  local def="${2:-}"
-  if [ "${!var:-}" ] && [ "${!fileVar:-}" ]; then
-    echo >&2 "error: both $var and $fileVar are set (but are exclusive)"
-    exit 1
-  fi
-  local val="$def"
-  if [ "${!var:-}" ]; then
-    val="${!var}"
-  elif [ "${!fileVar:-}" ]; then
-    val="$(<"${!fileVar}")"
-  fi
-  export "$var"="$val"
-  unset "$fileVar"
-}
+. /usr/libexec/cont-init-common
 
 DB_PORT=${DB_PORT:-3306}
 DB_NAME=${DB_NAME:-librenms}
@@ -116,11 +95,11 @@ EOL
 fi
 
 # Create service
-mkdir -p /etc/services.d/dispatcher
-cat >/etc/services.d/dispatcher/run <<EOL
+mkdir -p "${S6_SERVICE_DIR}/dispatcher"
+cat >"${S6_SERVICE_DIR}/dispatcher/run" <<EOL
 #!/usr/bin/execlineb -P
 with-contenv
-s6-setuidgid ${PUID}:${PGID}
+${SETUID_CMD}
 /opt/librenms/librenms-service.py ${DISPATCHER_ARGS}
 EOL
-chmod +x /etc/services.d/dispatcher/run
+chmod +x "${S6_SERVICE_DIR}/dispatcher/run"

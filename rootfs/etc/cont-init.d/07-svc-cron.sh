@@ -2,6 +2,8 @@
 # shellcheck shell=bash
 set -e
 
+. /usr/libexec/cont-init-common
+
 CRONTAB_PATH="/var/spool/cron/crontabs"
 CRON_HOOK_PATH="/data/cron-pre-hook"
 
@@ -24,7 +26,7 @@ fi
 
 # Init
 rm -rf ${CRONTAB_PATH}
-mkdir -m 0644 -p ${CRONTAB_PATH}
+mkdir -m 0755 -p ${CRONTAB_PATH}
 touch ${CRONTAB_PATH}/librenms
 
 # Cron
@@ -44,13 +46,13 @@ echo "* * * * * php /opt/librenms/artisan schedule:run --no-ansi --no-interactio
 
 # Fix perms
 echo "Fixing crontabs permissions..."
-chmod -R 0644 ${CRONTAB_PATH}
+chmod 0644 ${CRONTAB_PATH}/librenms
 
 # Create service
-mkdir -p /etc/services.d/cron
-cat >/etc/services.d/cron/run <<EOL
+mkdir -p "${S6_SERVICE_DIR}/cron"
+cat >"${S6_SERVICE_DIR}/cron/run" <<EOL
 #!/usr/bin/execlineb -P
 with-contenv
 exec busybox crond -f -L /dev/stdout
 EOL
-chmod +x /etc/services.d/cron/run
+chmod +x "${S6_SERVICE_DIR}/cron/run"
