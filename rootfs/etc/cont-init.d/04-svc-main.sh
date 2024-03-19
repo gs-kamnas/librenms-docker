@@ -2,28 +2,7 @@
 # shellcheck shell=bash
 set -e
 
-# From https://github.com/docker-library/mariadb/blob/master/docker-entrypoint.sh#L21-L41
-# usage: file_env VAR [DEFAULT]
-#    ie: file_env 'XYZ_DB_PASSWORD' 'example'
-# (will allow for "$XYZ_DB_PASSWORD_FILE" to fill in the value of
-#  "$XYZ_DB_PASSWORD" from a file, especially for Docker's secrets feature)
-file_env() {
-  local var="$1"
-  local fileVar="${var}_FILE"
-  local def="${2:-}"
-  if [ "${!var:-}" ] && [ "${!fileVar:-}" ]; then
-    echo >&2 "error: both $var and $fileVar are set (but are exclusive)"
-    exit 1
-  fi
-  local val="$def"
-  if [ "${!var:-}" ]; then
-    val="${!var}"
-  elif [ "${!fileVar:-}" ]; then
-    val="$(<"${!fileVar}")"
-  fi
-  export "$var"="$val"
-  unset "$fileVar"
-}
+. /usr/libexec/cont-init-common
 
 DB_PORT=${DB_PORT:-3306}
 DB_NAME=${DB_NAME:-librenms}
@@ -48,7 +27,9 @@ NODE_ID=$(php -r "echo uniqid();")
 EOL
 fi
 cat "/data/.env" >>"${LIBRENMS_PATH}/.env"
-chown librenms:librenms /data/.env "${LIBRENMS_PATH}/.env"
+if [ "$EUID" = 0 ]; then
+  chown librenms:librenms /data/.env "${LIBRENMS_PATH}/.env"
+fi
 
 file_env 'DB_PASSWORD'
 if [ -z "$DB_PASSWORD" ]; then
@@ -90,28 +71,28 @@ echo "Clear cache"
 artisan cache:clear --no-interaction
 artisan config:cache --no-interaction
 
-mkdir -p /etc/services.d/nginx
-cat >/etc/services.d/nginx/run <<EOL
+mkdir -p "${S6_SERVICE_DIR}/nginx"
+cat >"${S6_SERVICE_DIR}/nginx/run" <<EOL
 #!/usr/bin/execlineb -P
 with-contenv
-s6-setuidgid ${PUID}:${PGID}
+${SETUID_CMD}
 nginx -g "daemon off;"
 EOL
-chmod +x /etc/services.d/nginx/run
+chmod +x "${S6_SERVICE_DIR}/nginx/run"
 
-mkdir -p /etc/services.d/php-fpm
-cat >/etc/services.d/php-fpm/run <<EOL
+mkdir -p "${S6_SERVICE_DIR}/php-fpm"
+cat >"${S6_SERVICE_DIR}/php-fpm/run" <<EOL
 #!/usr/bin/execlineb -P
 with-contenv
-s6-setuidgid ${PUID}:${PGID}
+${SETUID_CMD}
 php-fpm83 -F
 EOL
-chmod +x /etc/services.d/php-fpm/run
+chmod +x "${S6_SERVICE_DIR}/php-fpm/run"
 
-mkdir -p /etc/services.d/snmpd
-cat >/etc/services.d/snmpd/run <<EOL
+mkdir -p "${S6_SERVICE_DIR}/snmpd"
+cat >"${S6_SERVICE_DIR}/snmpd/run" <<EOL
 #!/usr/bin/execlineb -P
 with-contenv
 /usr/sbin/snmpd -f -c /etc/snmp/snmpd.conf
 EOL
-chmod +x /etc/services.d/snmpd/run
+chmod +x "${S6_SERVICE_DIR}/snmpd/run"
