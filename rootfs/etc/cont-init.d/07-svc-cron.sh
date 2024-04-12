@@ -41,9 +41,6 @@ if [ "$LIBRENMS_WEATHERMAP" = "true" ] && [ -n "$LIBRENMS_WEATHERMAP_SCHEDULE" ]
   echo "${LIBRENMS_WEATHERMAP_SCHEDULE} [ -e \"${CRON_HOOK_PATH}\" ] && source \"${CRON_HOOK_PATH}\" ; php -f /opt/librenms/html/plugins/Weathermap/map-poller.php" >>${CRONTAB_PATH}/librenms
 fi
 
-echo "Creating LibreNMS cron artisan schedule:run"
-echo "* * * * * php /opt/librenms/artisan schedule:run --no-ansi --no-interaction > /dev/null 2>&1" >>${CRONTAB_PATH}/librenms
-
 # Fix perms
 echo "Fixing crontabs permissions..."
 chmod 0644 ${CRONTAB_PATH}/librenms
@@ -53,6 +50,6 @@ mkdir -p "${S6_SERVICE_DIR}/cron"
 cat >"${S6_SERVICE_DIR}/cron/run" <<EOL
 #!/usr/bin/execlineb -P
 with-contenv
-exec busybox crond -f -L /dev/stdout
+ifelse { test "${EUID}" -eq "${PUID}" } { /usr/local/bin/supercronic ${CRONTAB_PATH}/librenms } exec busybox crond -f -L /dev/stdout
 EOL
 chmod +x "${S6_SERVICE_DIR}/cron/run"
