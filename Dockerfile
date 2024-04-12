@@ -111,6 +111,19 @@ RUN addgroup -g ${PGID} librenms \
   && curl -sSLk -q https://raw.githubusercontent.com/librenms/librenms-agent/master/snmp/distro -o /usr/bin/distro \
   && chmod +x /usr/bin/distro
 
+# Install supercronic as crond requires running as root
+# therefore we will use supercronic instead if our EUID at runtime is not 0/root
+# Latest releases available at https://github.com/aptible/supercronic/releases
+ENV SUPERCRONIC_URL=https://github.com/aptible/supercronic/releases/download/v0.2.29/supercronic-linux-amd64 \
+    SUPERCRONIC=supercronic-linux-amd64 \
+    SUPERCRONIC_SHA1SUM=cd48d45c4b10f3f0bfdd3a57d054cd05ac96812b
+
+RUN curl -fsSLO "$SUPERCRONIC_URL" \
+  && echo "${SUPERCRONIC_SHA1SUM}  ${SUPERCRONIC}" | sha1sum -c - \
+  && chmod +x "$SUPERCRONIC" \
+  && mv "$SUPERCRONIC" "/usr/local/bin/${SUPERCRONIC}" \
+  && ln -s "/usr/local/bin/${SUPERCRONIC}" /usr/local/bin/supercronic
+
 WORKDIR ${LIBRENMS_PATH}
 ARG LIBRENMS_VERSION
 ARG WEATHERMAP_PLUGIN_COMMIT
