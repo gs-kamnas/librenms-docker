@@ -50,6 +50,6 @@ mkdir -p "${S6_SERVICE_DIR}/cron"
 cat >"${S6_SERVICE_DIR}/cron/run" <<EOL
 #!/usr/bin/execlineb -P
 with-contenv
-ifelse { eltest "${EUID}" -eq "${PUID}" } { exec busybox crond -f -L /dev/stdout } /usr/local/bin/supercronic ${CRONTAB_PATH}/librenms
+ifelse { test "${EUID}" -eq "${PUID}" } { /usr/local/bin/supercronic ${CRONTAB_PATH}/librenms } exec busybox crond -f -L /dev/stdout
 EOL
 chmod +x "${S6_SERVICE_DIR}/cron/run"
