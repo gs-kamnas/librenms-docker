@@ -19,7 +19,7 @@ if [ "$(id -u)" = 0 ]; then
     /tpls \
     /var/lib/nginx \
     /var/log/nginx \
-    /var/log/php82 \
+    /var/log/php83 \
     /var/run/nginx \
     /var/run/php-fpm
 fi
