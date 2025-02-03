@@ -132,8 +132,8 @@ RUN apk --update --no-cache add -t build-dependencies \
     linux-headers \
     musl-dev \
     python3-dev \
-  && echo "Installing LibreNMS https://github.com/gs-kamnas/librenms.git#${LIBRENMS_VERSION}..." \
-  && git clone --depth=1 --branch ${LIBRENMS_VERSION} https://github.com/gs-kamnas/librenms.git . \
+  && echo "Installing LibreNMS https://github.com/garryshtern/librenms.git#${LIBRENMS_VERSION}..." \
+  && git clone --depth=1 --branch ${LIBRENMS_VERSION} https://github.com/garryshtern/librenms.git . \
   && pip3 install --ignore-installed -r requirements.txt --upgrade --break-system-packages \
   && COMPOSER_CACHE_DIR="/tmp" composer install --no-dev --no-interaction --no-ansi \
   && mkdir config.d \
