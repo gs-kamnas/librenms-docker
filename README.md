@@ -78,11 +78,11 @@ ___
 
 [![Try in PWD](https://raw.githubusercontent.com/play-with-docker/stacks/master/assets/images/button.png)](https://labs.play-with-docker.com/?stack=https://raw.githubusercontent.com/librenms/docker/master/examples/pwd/librenms.yml)
 
-## Build locally
+## Building locally (docker)
 
 ```console
-$ git clone https://github.com/librenms/docker.git docker-librenms
-$ cd docker-librenms
+$ git clone https://github.com/<username>/<reponame>.git
+$ cd <reponame>
 
 # Build image and output to docker (default)
 $ docker buildx bake
@@ -91,9 +91,27 @@ $ docker buildx bake
 $ docker buildx bake image-all
 ```
 
-## Image
+## Building locally (podman)
+_This will only build an image for the build host's system architecture and will not cross-build images for other architectures._
 
-Following platforms for this image are available:
+```console
+# Build the universal as well as "rootless" container images
+$ podman build -t ghcr.io/<username>/<reponame>/librenms:branchname -t localhost/librenms:latest .
+$ podman build -t ghcr.io/<username>/<reponame>/librenms-user:branchname -f Dockerfile.user .
+
+# Optional: publish the built container images on Github Container Registry
+$ podman login ghcr.io
+$ podman push ghcr.io/<username>/<reponame>/librenms:branchname
+$ podman push ghcr.io/<username>/<reponame>/librenms-user:branchname
+```
+Optional build arguments (supply these with --build-arg variable=value if desired)
+* LIBRENMS_VERSION
+* WEATHERMAP_PLUGIN_COMMIT
+* ALPINE_VERSION
+* SYSLOGNG_VERSION
+
+## Image details
+This image presently supports being built for the following platforms/architectures:
 
 ```
 $ docker buildx imagetools inspect librenms/librenms --format "{{json .Manifest}}" | \
@@ -129,6 +147,7 @@ linux/s390x
 * `LOG_IP_VAR`: Use another variable to retrieve the remote IP address for access [log_format](http://nginx.org/en/docs/http/ngx_http_log_module.html#log_format) on Nginx. (default `remote_addr`)
 * `SESSION_DRIVER`: [Driver to use for session storage](https://github.com/librenms/librenms/blob/master/config/session.php) (default `file`)
 * `CACHE_DRIVER`: [Driver to use for cache and locks](https://github.com/librenms/librenms/blob/master/config/cache.php) (default `database`)
+* `CURL_CA_BUNDLE`: TLS CA bundle to use when authenticating TLS endpoints when using (lib)curl directly as well as under PHP-FPM. Default is to use the CA bundle from the base Alpine Linux image. 
 
 ### Redis
 
@@ -153,6 +172,11 @@ linux/s390x
 * `SIDECAR_DISPATCHER`: Set to `1` to enable sidecar dispatcher mode for this container (default `0`)
 * `DISPATCHER_NODE_ID`: Unique node ID for your dispatcher service
 * `DISPATCHER_ARGS`: Additional args to pass to the [dispatcher service](https://github.com/librenms/librenms/blob/master/librenms-service.py)
+
+The following dispatcher variables are designed for use cases where there are several sidecar containers running in a distributed manner (such as in a Kubernetes cluster)
+* `DISABLE_DB_MIGRATE`: Unconditionally disables the execution of database migrations on container initialization.
+* `DISABLE_CRON`: Disables cron functionality in order to accomodate usecases where such is performed using an out-of-container scheduling means such as a Kubernetes CronJob.
+* `CRON_PRE_HOOK`: Script that will be sourced prior to cron job execution in the container. This is designed to enable integration with a leader election sidecar container such as [OpenShift leader-elector](https://github.com/openshift/leader-elector) when running as a distributed system on a Kubernetes cluster.
 
 ### Syslog-ng
 
@@ -236,9 +260,10 @@ $ docker run -d -p 8000:8000 --name librenms \
   -e "DB_HOST=db" \
   librenms/librenms:latest
 ```
+Podman may also be used in lieu of docker for all container invocations. However, it will likely be necessary to enable unprivileged pings if LibreNMS is being run from an unprivileged, user-namespaced Podman container [per the Podman manual](https://github.com/containers/podman/blob/main/troubleshooting.md#5-rootless-containers-cannot-ping-hosts)
 
 > [!WARNING]
-> `db` must be a running MySQL instance.
+> `db` must be the hostname of a running and appropriately configured MySQL instance.
 
 ### First launch
 
